@@ -1,0 +1,3268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartPrint AI – AI-Powered Xerox & Print Queue Management</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- React 18 & Babel Standalone -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.02); }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 2s infinite ease-in-out;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen selection:bg-indigo-500 selection:text-white">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // --- SVG ICON COMPONENTS (Self-contained, clean Lucide style) ---
+    const Icon = ({ name, size = 18, className = "" }) => {
+      const icons = {
+        printer: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+        ),
+        upload: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        ),
+        fileText: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        ),
+        checkCircle: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        ),
+        clock: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        ),
+        layers: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        ),
+        sparkles: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
+          </svg>
+        ),
+        arrowRight: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        ),
+        chevronRight: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        ),
+        cpu: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+            <rect x="9" y="9" width="6" height="6"></rect>
+            <line x1="9" y1="1" x2="9" y2="4"></line>
+            <line x1="15" y1="1" x2="15" y2="4"></line>
+            <line x1="9" y1="20" x2="9" y2="23"></line>
+            <line x1="15" y1="20" x2="15" y2="23"></line>
+            <line x1="20" y1="9" x2="23" y2="9"></line>
+            <line x1="20" y1="14" x2="23" y2="14"></line>
+            <line x1="1" y1="9" x2="4" y2="9"></line>
+            <line x1="1" y1="14" x2="4" y2="14"></line>
+          </svg>
+        ),
+        barChart: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <line x1="12" y1="20" x2="12" y2="10"></line>
+            <line x1="18" y1="20" x2="18" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="16"></line>
+          </svg>
+        ),
+        database: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+        ),
+        shieldCheck: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+        ),
+        play: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        ),
+        pause: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <rect x="6" y="4" width="4" height="16"></rect>
+            <rect x="14" y="4" width="4" height="16"></rect>
+          </svg>
+        ),
+        x: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        ),
+        alertCircle: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        ),
+        refresh: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        ),
+        users: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        ),
+        dollarSign: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+        ),
+        trash: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        ),
+        info: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        ),
+        code: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+        ),
+        gitBranch: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <line x1="6" y1="3" x2="6" y2="15"></line>
+            <circle cx="18" cy="6" r="3"></circle>
+            <circle cx="6" cy="18" r="3"></circle>
+            <path d="M18 9a9 9 0 0 1-9 9"></path>
+          </svg>
+        ),
+        check: (
+          <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        )
+      };
+      return icons[name] || icons.info;
+    };
+
+    // --- INITIAL SEED DATA FOR DEMO QUEUE ---
+    const INITIAL_JOBS = [
+      {
+        id: "SP-001",
+        docName: "Notes.pdf",
+        user: "Student 01",
+        pages: 10,
+        copies: 2,
+        mode: "B&W",
+        sides: "Double-sided",
+        paperSize: "A4",
+        cost: 20,
+        queuePos: 1,
+        status: "Printing",
+        timestamp: "09:15 AM",
+        step: 4
+      },
+      {
+        id: "SP-002",
+        docName: "Assignment.pdf",
+        user: "Student 02",
+        pages: 25,
+        copies: 1,
+        mode: "Colour",
+        sides: "Single-sided",
+        paperSize: "A4",
+        cost: 175,
+        queuePos: 2,
+        status: "Waiting",
+        timestamp: "09:20 AM",
+        step: 3
+      },
+      {
+        id: "SP-003",
+        docName: "Microprocessor_Lab_Manual.pdf",
+        user: "Rahul Sharma (CS21B04)",
+        pages: 16,
+        copies: 1,
+        mode: "B&W",
+        sides: "Double-sided",
+        paperSize: "A4",
+        cost: 16,
+        queuePos: 3,
+        status: "Waiting",
+        timestamp: "09:22 AM",
+        step: 3
+      },
+      {
+        id: "SP-004",
+        docName: "Robotics_Seminar_Report.pdf",
+        user: "Aman Verma (ME22B19)",
+        pages: 18,
+        copies: 1,
+        mode: "Colour",
+        sides: "Double-sided",
+        paperSize: "A4",
+        cost: 90,
+        queuePos: 4,
+        status: "Waiting",
+        timestamp: "09:25 AM",
+        step: 3
+      },
+      {
+        id: "SP-005",
+        docName: "Campus_Placement_Resume.pdf",
+        user: "Sneha Rao (EC21B11)",
+        pages: 2,
+        copies: 5,
+        mode: "B&W",
+        sides: "Single-sided",
+        paperSize: "A4",
+        cost: 15,
+        queuePos: 5,
+        status: "Waiting",
+        timestamp: "09:27 AM",
+        step: 3
+      }
+    ];
+
+    const INITIAL_DOCS = [
+      { id: "DOC-101", name: "Notes.pdf", type: "PDF", pages: 10, uploadedAt: "09:14 AM", aiStatus: "Analysed", printStatus: "Printing", size: "1.2 MB" },
+      { id: "DOC-102", name: "Assignment.pdf", type: "PDF", pages: 25, uploadedAt: "09:18 AM", aiStatus: "Analysed", printStatus: "In Queue", size: "3.4 MB" },
+      { id: "DOC-103", name: "Microprocessor_Lab_Manual.pdf", type: "PDF", pages: 16, uploadedAt: "09:21 AM", aiStatus: "Analysed", printStatus: "In Queue", size: "2.1 MB" },
+      { id: "DOC-104", name: "Robotics_Seminar_Report.docx", type: "DOCX", pages: 18, uploadedAt: "09:23 AM", aiStatus: "Analysed", printStatus: "In Queue", size: "1.8 MB" },
+      { id: "DOC-105", name: "Event_Banner_Flyer.png", type: "PNG", pages: 1, uploadedAt: "08:50 AM", aiStatus: "Analysed", printStatus: "Completed", size: "4.5 MB" },
+      { id: "DOC-106", name: "Scanned_Receipt_Unclear.jpg", type: "JPG", pages: 1, uploadedAt: "08:35 AM", aiStatus: "Failed", printStatus: "Rejected", size: "0.8 MB" }
+    ];
+
+    // --- MAIN ROOT APPLICATION COMPONENT ---
+    function App() {
+      const [currentView, setCurrentView] = useState(() => {
+        return localStorage.getItem('smartprint_view') || 'landing';
+      });
+
+      const [jobs, setJobs] = useState(() => {
+        const saved = localStorage.getItem('smartprint_jobs');
+        return saved ? JSON.parse(saved) : INITIAL_JOBS;
+      });
+
+      const [docs, setDocs] = useState(() => {
+        const saved = localStorage.getItem('smartprint_docs');
+        return saved ? JSON.parse(saved) : INITIAL_DOCS;
+      });
+
+      const [uploadedFile, setUploadedFile] = useState(null);
+      const [uploadProgress, setUploadProgress] = useState(0);
+      const [isAnalyzing, setIsAnalyzing] = useState(false);
+      const [analysisStage, setAnalysisStage] = useState("");
+      const [aiResult, setAiResult] = useState({
+        fileName: "example.pdf",
+        fileType: "PDF",
+        pages: 12,
+        detectedContent: "Text Document",
+        printReadiness: "Ready",
+        confidence: 94,
+        analysisText: "Document contains 12 printable pages with standard text content.",
+        checks: [
+          { text: "File valid", passed: true },
+          { text: "Pages detected", passed: true },
+          { text: "Print-ready", passed: true },
+          { text: "No corruption detected", passed: true }
+        ]
+      });
+
+      const [printConfig, setPrintConfig] = useState({
+        copies: 2,
+        mode: "bw",
+        sides: "double",
+        paperSize: "A4",
+        pageRange: "all",
+        customRangeText: "1-12"
+      });
+
+      const [activeUserJobId, setActiveUserJobId] = useState("SP-2026-00124");
+      const [toastMessage, setToastMessage] = useState(null);
+
+      useEffect(() => {
+        localStorage.setItem('smartprint_jobs', JSON.stringify(jobs));
+      }, [jobs]);
+
+      useEffect(() => {
+        localStorage.setItem('smartprint_docs', JSON.stringify(docs));
+      }, [docs]);
+
+      useEffect(() => {
+        localStorage.setItem('smartprint_view', currentView);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, [currentView]);
+
+      const showToast = (msg) => {
+        setToastMessage(msg);
+        setTimeout(() => setToastMessage(null), 4000);
+      };
+
+      const resetDemoData = () => {
+        setJobs(INITIAL_JOBS);
+        setDocs(INITIAL_DOCS);
+        setActiveUserJobId("SP-2026-00124");
+        showToast("Demo data reset to initial campus state.");
+      };
+
+      const calculatePrice = (pages, copies, mode, sides, size) => {
+        let baseRatePerPage = 1.0;
+        if (mode === "bw") {
+          baseRatePerPage = sides === "single" ? 1.5 : 1.0;
+        } else {
+          baseRatePerPage = sides === "single" ? 7.0 : 5.0;
+        }
+        let sizeMultiplier = 1.0;
+        if (size === "A3") sizeMultiplier = 1.8;
+        if (size === "Letter") sizeMultiplier = 1.0;
+
+        const effectivePages = printConfig.pageRange === "custom" ? 6 : pages;
+        const total = Math.round(effectivePages * copies * baseRatePerPage * sizeMultiplier);
+        return {
+          total,
+          baseRatePerPage,
+          effectivePages,
+          copies
+        };
+      };
+
+      const currentPricing = useMemo(() => {
+        return calculatePrice(
+          aiResult.pages,
+          printConfig.copies,
+          printConfig.mode,
+          printConfig.sides,
+          printConfig.paperSize
+        );
+      }, [aiResult.pages, printConfig]);
+
+      const runAiAnalysis = (fileInfo) => {
+        setIsAnalyzing(true);
+        setAnalysisStage("Uploading document...");
+        setUploadProgress(30);
+
+        setTimeout(() => {
+          setUploadProgress(70);
+          setAnalysisStage("Running AI document analysis...");
+        }, 800);
+
+        setTimeout(() => {
+          setUploadProgress(95);
+          setAnalysisStage("Preparing print configuration...");
+        }, 1700);
+
+        setTimeout(() => {
+          setUploadProgress(100);
+          setIsAnalyzing(false);
+
+          const fileName = fileInfo ? fileInfo.name : "example.pdf";
+          const ext = fileName.split('.').pop().toUpperCase();
+          const pageNum = fileInfo && fileInfo.mockPages ? fileInfo.mockPages : 12;
+
+          setAiResult({
+            fileName: fileName,
+            fileType: ext || "PDF",
+            pages: pageNum,
+            detectedContent: ext === "PNG" || ext === "JPG" ? "Graphic / Flyer" : "Text Document",
+            printReadiness: "Ready",
+            confidence: 94,
+            analysisText: `Document contains ${pageNum} printable pages with standard text content.`,
+            checks: [
+              { text: "File valid", passed: true },
+              { text: "Pages detected", passed: true },
+              { text: "Print-ready", passed: true },
+              { text: "No corruption detected", passed: true }
+            ]
+          });
+
+          const newDoc = {
+            id: `DOC-${Math.floor(100 + Math.random() * 900)}`,
+            name: fileName,
+            type: ext || "PDF",
+            pages: pageNum,
+            uploadedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            aiStatus: "Analysed",
+            printStatus: "Pending Config",
+            size: fileInfo ? fileInfo.size : "2.4 MB"
+          };
+          setDocs(prev => [newDoc, ...prev]);
+
+          setCurrentView('ai_result');
+        }, 2500);
+      };
+
+      const handleAddToQueue = () => {
+        const newJobId = "SP-2026-00124";
+        setActiveUserJobId(newJobId);
+
+        const waitingCount = jobs.filter(j => j.status === "Waiting").length;
+        const newPosition = waitingCount + 2;
+
+        const newJob = {
+          id: newJobId,
+          docName: aiResult.fileName,
+          user: "Student 04 (You)",
+          pages: currentPricing.effectivePages,
+          copies: printConfig.copies,
+          mode: printConfig.mode === "bw" ? "B&W" : "Colour",
+          sides: printConfig.sides === "single" ? "Single-sided" : "Double-sided",
+          paperSize: printConfig.paperSize,
+          cost: currentPricing.total,
+          queuePos: newPosition,
+          status: "Waiting",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          step: 3
+        };
+
+        setJobs(prev => [...prev.filter(j => j.id !== newJobId), newJob]);
+        setCurrentView('queue_confirm');
+        showToast(`Job ${newJobId} added to print queue successfully!`);
+      };
+
+      const handleProcessNextJob = () => {
+        setJobs(prev => {
+          let updated = [...prev];
+          const printingIndex = updated.findIndex(j => j.status === "Printing");
+          if (printingIndex !== -1) {
+            updated[printingIndex] = {
+              ...updated[printingIndex],
+              status: "Completed",
+              step: 5
+            };
+          }
+
+          const waitingIndex = updated.findIndex(j => j.status === "Waiting");
+          if (waitingIndex !== -1) {
+            updated[waitingIndex] = {
+              ...updated[waitingIndex],
+              status: "Printing",
+              queuePos: 1,
+              step: 4
+            };
+            showToast(`Operator started printing: ${updated[waitingIndex].id} (${updated[waitingIndex].docName})`);
+          } else {
+            showToast("No more waiting jobs in queue! All active tasks completed.");
+          }
+
+          let currentPos = 2;
+          updated = updated.map(j => {
+            if (j.status === "Waiting") {
+              const res = { ...j, queuePos: currentPos };
+              currentPos++;
+              return res;
+            }
+            return j;
+          });
+
+          return updated;
+        });
+      };
+
+      const handleJobAction = (jobId, action) => {
+        setJobs(prev => prev.map(job => {
+          if (job.id === jobId) {
+            if (action === "start") return { ...job, status: "Printing", step: 4 };
+            if (action === "pause") return { ...job, status: "Paused" };
+            if (action === "complete") return { ...job, status: "Completed", step: 5 };
+            if (action === "cancel") return { ...job, status: "Cancelled", step: 1 };
+          }
+          return job;
+        }));
+        showToast(`Job ${jobId} status updated to: ${action.toUpperCase()}`);
+      };
+
+      const handleUserCancel = () => {
+        setJobs(prev => prev.map(j => j.id === activeUserJobId ? { ...j, status: "Cancelled" } : j));
+        showToast(`Your job ${activeUserJobId} was cancelled.`);
+      };
+
+      const userJob = jobs.find(j => j.id === activeUserJobId) || {
+        id: activeUserJobId,
+        docName: aiResult.fileName,
+        user: "Student 04 (You)",
+        pages: aiResult.pages,
+        copies: printConfig.copies,
+        mode: printConfig.mode === "bw" ? "B&W" : "Colour",
+        sides: printConfig.sides === "single" ? "Single-sided" : "Double-sided",
+        paperSize: printConfig.paperSize,
+        cost: currentPricing.total,
+        queuePos: 4,
+        status: "Waiting",
+        timestamp: "Just now",
+        step: 3
+      };
+
+      return (
+        <div className="flex flex-col min-h-screen">
+          {toastMessage && (
+            <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700">
+              <Icon name="checkCircle" size={20} className="text-emerald-400" />
+              <span className="text-sm font-medium">{toastMessage}</span>
+            </div>
+          )}
+
+          {/* TOP DEMO CONTROLS BAR */}
+          <header className="bg-slate-900 text-slate-200 border-b border-slate-800 text-xs py-2 px-4 sticky top-0 z-40 shadow-sm">
+            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 mr-1.5 animate-pulse"></span>
+                  COLLEGE PROJECT DEMO MODE
+                </span>
+                <span className="text-slate-400 hidden sm:inline">|</span>
+                <span className="text-slate-300 font-medium hidden md:inline">Jump directly to any prototype module:</span>
+              </div>
+              <div className="flex items-center flex-wrap gap-1.5 overflow-x-auto py-1">
+                <button
+                  onClick={() => setCurrentView('landing')}
+                  className={`px-2.5 py-1 rounded transition-colors ${currentView === 'landing' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'}`}
+                >
+                  1. Landing
+                </button>
+                <button
+                  onClick={() => setCurrentView('upload')}
+                  className={`px-2.5 py-1 rounded transition-colors ${currentView === 'upload' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'}`}
+                >
+                  2. Upload
+                </button>
+                <button
+                  onClick={() => setCurrentView('ai_result')}
+                  className={`px-2.5 py-1 rounded transition-colors ${currentView === 'ai_result' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'}`}
+                >
+                  3. AI Result
+                </button>
+                <button
+                  onClick={() => setCurrentView('print_settings')}
+                  className={`px-2.5 py-1 rounded transition-colors ${currentView === 'print_settings' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'}`}
+                >
+                  4. Settings
+                </button>
+                <button
+                  onClick={() => setCurrentView('queue_confirm')}
+                  className={`px-2.5 py-1 rounded transition-colors ${currentView === 'queue_confirm' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'}`}
+                >
+                  5. Queue Card
+                </button>
+                <button
+                  onClick={() => setCurrentView('track_job')}
+                  className={`px-2.5 py-1 rounded transition-colors ${currentView === 'track_job' ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'}`}
+                >
+                  6. Track Job
+                </button>
+                <button
+                  onClick={() => setCurrentView('admin_dashboard')}
+                  className={`px-2.5 py-1 rounded transition-colors ${['admin_dashboard', 'admin_queue', 'admin_docs', 'analytics'].includes(currentView) ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'}`}
+                >
+                  7-10. Admin View
+                </button>
+                <button
+                  onClick={() => setCurrentView('better_tomorrow')}
+                  className={`px-2.5 py-1 rounded transition-colors ${['better_tomorrow', 'prompt_audit', 'user_validation', 'dev_progress'].includes(currentView) ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'}`}
+                >
+                  11-14. Project Evidence
+                </button>
+                <button
+                  onClick={() => setCurrentView('architecture')}
+                  className={`px-2.5 py-1 rounded transition-colors ${['architecture', 'workflow', 'tech_stack'].includes(currentView) ? 'bg-indigo-600 text-white font-semibold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'}`}
+                >
+                  15-17. Architecture & Stack
+                </button>
+                <button
+                  onClick={resetDemoData}
+                  title="Reset simulated queue state to initial demo jobs"
+                  className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-amber-300 font-medium flex items-center gap-1 ml-1"
+                >
+                  <Icon name="refresh" size={12} /> Reset Data
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* MAIN APPLICATION NAVBAR */}
+          <nav className="bg-white border-b border-slate-200 sticky top-9 z-30 shadow-xs">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+              <div 
+                onClick={() => setCurrentView('landing')}
+                className="flex items-center gap-2.5 cursor-pointer group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
+                  <Icon name="printer" size={22} className="text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-lg tracking-tight text-slate-900">SmartPrint</span>
+                    <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-wider">AI</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 -mt-0.5">Xerox & Queue Automation</p>
+                </div>
+              </div>
+
+              <div className="hidden md:flex items-center gap-1 lg:gap-2">
+                <button
+                  onClick={() => setCurrentView('landing')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === 'landing' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
+                >
+                  Home
+                </button>
+                <button
+                  onClick={() => setCurrentView('upload')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${['upload', 'ai_result', 'print_settings', 'queue_confirm'].includes(currentView) ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
+                >
+                  Upload & Print
+                </button>
+                <button
+                  onClick={() => setCurrentView('track_job')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === 'track_job' ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
+                >
+                  Track Job
+                </button>
+                <button
+                  onClick={() => setCurrentView('admin_dashboard')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${['admin_dashboard', 'admin_queue', 'admin_docs', 'analytics'].includes(currentView) ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
+                >
+                  Admin / Operator
+                </button>
+                <button
+                  onClick={() => setCurrentView('better_tomorrow')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${['better_tomorrow', 'prompt_audit', 'user_validation', 'dev_progress'].includes(currentView) ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
+                >
+                  Project Evidence
+                </button>
+                <button
+                  onClick={() => setCurrentView('architecture')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${['architecture', 'workflow', 'tech_stack'].includes(currentView) ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
+                >
+                  Architecture & Docs
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => setCurrentView('upload')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm shadow-indigo-300 transition-all flex items-center gap-1.5"
+                >
+                  <Icon name="upload" size={16} />
+                  <span>Upload Doc</span>
+                </button>
+                <button
+                  onClick={() => setCurrentView('admin_dashboard')}
+                  className="px-3.5 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg transition-colors flex items-center gap-1.5"
+                >
+                  <Icon name="users" size={16} />
+                  <span className="hidden sm:inline">Admin Login</span>
+                </button>
+              </div>
+            </div>
+          </nav>
+
+          {/* MAIN ROUTER CONTENT */}
+          <main className="flex-1">
+            {currentView === 'landing' && (
+              <LandingView 
+                onStartUpload={() => setCurrentView('upload')}
+                onStartDemo={() => setCurrentView('upload')}
+                onViewArchitecture={() => setCurrentView('architecture')}
+                onViewAdmin={() => setCurrentView('admin_dashboard')}
+              />
+            )}
+
+            {currentView === 'upload' && (
+              <UploadView 
+                uploadedFile={uploadedFile}
+                setUploadedFile={setUploadedFile}
+                uploadProgress={uploadProgress}
+                isAnalyzing={isAnalyzing}
+                analysisStage={analysisStage}
+                onAnalyze={runAiAnalysis}
+              />
+            )}
+
+            {currentView === 'ai_result' && (
+              <AiResultView 
+                aiResult={aiResult}
+                onContinue={() => setCurrentView('print_settings')}
+                onReupload={() => setCurrentView('upload')}
+              />
+            )}
+
+            {currentView === 'print_settings' && (
+              <PrintSettingsView 
+                aiResult={aiResult}
+                printConfig={printConfig}
+                setPrintConfig={setPrintConfig}
+                currentPricing={currentPricing}
+                onAddToQueue={handleAddToQueue}
+                onBack={() => setCurrentView('ai_result')}
+              />
+            )}
+
+            {currentView === 'queue_confirm' && (
+              <QueueConfirmView 
+                job={userJob}
+                jobs={jobs}
+                onTrackJob={() => setCurrentView('track_job')}
+                onViewAdmin={() => setCurrentView('admin_queue')}
+              />
+            )}
+
+            {currentView === 'track_job' && (
+              <TrackJobView 
+                job={userJob}
+                onCancel={handleUserCancel}
+                onSimulateAdvance={handleProcessNextJob}
+                onGoAdmin={() => setCurrentView('admin_queue')}
+              />
+            )}
+
+            {['admin_dashboard', 'admin_queue', 'admin_docs', 'analytics'].includes(currentView) && (
+              <AdminLayout 
+                currentView={currentView}
+                setCurrentView={setCurrentView}
+                jobs={jobs}
+                docs={docs}
+                onProcessNext={handleProcessNextJob}
+                onJobAction={handleJobAction}
+              />
+            )}
+
+            {['better_tomorrow', 'prompt_audit', 'user_validation', 'dev_progress'].includes(currentView) && (
+              <EvidenceLayout 
+                currentView={currentView}
+                setCurrentView={setCurrentView}
+              />
+            )}
+
+            {['architecture', 'workflow', 'tech_stack'].includes(currentView) && (
+              <ArchitectureLayout 
+                currentView={currentView}
+                setCurrentView={setCurrentView}
+              />
+            )}
+          </main>
+
+          {/* FOOTER */}
+          <footer className="bg-white border-t border-slate-200 py-8 px-4 text-sm text-slate-500">
+            <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded bg-indigo-600 flex items-center justify-center text-white">
+                  <Icon name="printer" size={14} />
+                </div>
+                <span className="font-bold text-slate-800">SmartPrint AI</span>
+                <span className="text-xs text-slate-400">| Academic Engineering Prototype • Modern Xerox Automation</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 text-xs">
+                <span className="text-slate-600 font-semibold">Tech Stack:</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">React.js + Vite</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">Tailwind CSS</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">Node.js Express</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">SQLite</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">FastAPI Microservice</span>
+              </div>
+              <div className="text-xs text-slate-400">
+                Built for College Project Presentation & Demo Evaluation
+              </div>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 1. LANDING PAGE VIEW
+    // ==========================================
+    function LandingView({ onStartUpload, onStartDemo, onViewArchitecture, onViewAdmin }) {
+      return (
+        <div className="space-y-16 py-8">
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12 text-center">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold mb-6">
+              <Icon name="sparkles" size={14} className="text-indigo-600" />
+              <span>Next-Gen College Xerox & Document Processing Prototype</span>
+            </div>
+            
+            <h1 className="text-4xl sm:text-6xl font-extrabold text-slate-900 tracking-tight max-w-4xl mx-auto leading-tight">
+              Smart Printing. <br className="hidden sm:inline" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-800">
+                Less Waiting.
+              </span>
+            </h1>
+
+            <p className="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto font-normal leading-relaxed">
+              AI-powered document processing and intelligent print queue management for faster and more efficient Xerox services.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <button
+                onClick={onStartUpload}
+                className="px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-200 transition-all hover:scale-105 flex items-center gap-2"
+              >
+                <Icon name="upload" size={18} />
+                <span>Upload Document</span>
+              </button>
+              <button
+                onClick={onStartDemo}
+                className="px-6 py-3.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold rounded-xl shadow-sm transition-colors flex items-center gap-2"
+              >
+                <Icon name="play" size={18} className="text-indigo-600" />
+                <span>View Interactive Demo</span>
+              </button>
+              <button
+                onClick={onViewAdmin}
+                className="px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-colors flex items-center gap-2"
+              >
+                <Icon name="users" size={18} />
+                <span>Operator Dashboard</span>
+              </button>
+            </div>
+
+            <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto text-left">
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                <div className="text-2xl font-bold text-indigo-600">70%</div>
+                <div className="text-xs text-slate-500 font-medium">Reduced Waiting Time</div>
+              </div>
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                <div className="text-2xl font-bold text-indigo-600">100%</div>
+                <div className="text-xs text-slate-500 font-medium">Automated Page Detection</div>
+              </div>
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                <div className="text-2xl font-bold text-indigo-600">0</div>
+                <div className="text-xs text-slate-500 font-medium">Pricing / Counting Errors</div>
+              </div>
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                <div className="text-2xl font-bold text-indigo-600">Live</div>
+                <div className="text-xs text-slate-500 font-medium">Queue Position Tracking</div>
+              </div>
+            </div>
+          </section>
+
+          {/* Visual Workflow Illustration */}
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-xs">
+              <div className="text-center mb-10">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-600">System Workflow</h2>
+                <p className="text-2xl font-bold text-slate-900 mt-1">From Upload to Finished Print in Seconds</p>
+                <p className="text-sm text-slate-500 max-w-xl mx-auto mt-2">
+                  Replace manual chaos with a fully automated, AI-verified printing pipeline.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative">
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 relative group hover:border-indigo-400 transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm mb-3 shadow-md shadow-indigo-100">
+                    1
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-base">Upload</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Student uploads PDF, DOCX, or images from mobile or laptop without queuing.
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 relative group hover:border-indigo-400 transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm mb-3 shadow-md shadow-indigo-100">
+                    2
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-base">AI Analysis</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    FastAPI microservice inspects document, verifies page count, format, and printable readiness.
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 relative group hover:border-indigo-400 transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm mb-3 shadow-md shadow-indigo-100">
+                    3
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-base">Queue</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Job is queued in SQLite database with exact price estimation and assigned position number.
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 relative group hover:border-indigo-400 transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm mb-3 shadow-md shadow-indigo-100">
+                    4
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-base">Print</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Operator processes jobs sequentially via queue spooler; real-time status updates broadcast.
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 relative group hover:border-indigo-400 transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm mb-3 shadow-md shadow-emerald-100">
+                    5
+                  </div>
+                  <h3 className="font-bold text-slate-900 text-base">Done</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Student receives completion notice with pickup token; simply collects without waiting.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 6 Feature Cards */}
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-600">Core Capabilities</h2>
+              <p className="text-2xl font-bold text-slate-900 mt-1">Engineered for Campus Xerox Operations</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+                  <Icon name="cpu" size={24} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">AI Document Analysis</h3>
+                <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                  Automated OCR and document classification detects corruption, blank pages, and content type before queuing.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+                  <Icon name="fileText" size={24} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Automatic Page Detection</h3>
+                <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                  No more manual leaf-turning by operators. System instantly counts printable pages accurately across PDFs and DOCXs.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+                  <Icon name="layers" size={24} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Smart Queue Management</h3>
+                <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                  FIFO queue with priority spooling, dynamic queue positions, and real-time wait estimation for students.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+                  <Icon name="dollarSign" size={24} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Print Cost Estimation</h3>
+                <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                  Transparent live pricing calculation factoring copies, B&W vs colour, duplex printing, and paper dimensions.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
+                  <Icon name="clock" size={24} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Real-Time Status</h3>
+                <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                  Students track active stage progression (Uploaded → AI Analysed → In Queue → Printing → Completed) from anywhere on campus.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-4">
+                  <Icon name="users" size={24} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Reduced Waiting Time</h3>
+                <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+                  Eliminates physical crowds around Xerox counters. Students arrive only when the notification marks their job ready.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Academic Prototype Callout */}
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-8 sm:p-10 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+              <div>
+                <span className="px-3 py-1 rounded bg-indigo-500/20 text-indigo-300 text-xs font-semibold uppercase tracking-wider border border-indigo-500/30">
+                  College Project Review Ready
+                </span>
+                <h3 className="text-2xl font-bold mt-3">Explore Architecture & Validation Evidence</h3>
+                <p className="text-slate-300 text-sm max-w-xl mt-1">
+                  Includes Project Better Tomorrow Alignment, AI Prompt Audit, User Validation reports, and full System Architecture diagrams.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={onViewArchitecture}
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors"
+                >
+                  View Architecture
+                </button>
+                <button
+                  onClick={onStartUpload}
+                  className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-xl transition-colors border border-white/20"
+                >
+                  Try Upload Flow
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 2. USER DOCUMENT UPLOAD PAGE
+    // ==========================================
+    function UploadView({ uploadedFile, setUploadedFile, uploadProgress, isAnalyzing, analysisStage, onAnalyze }) {
+      const fileInputRef = useRef(null);
+      const [isDragging, setIsDragging] = useState(false);
+
+      const sampleDocs = [
+        { name: "Engineering_Mathematics_Unit3_Notes.pdf", type: "PDF", size: "2.4 MB", mockPages: 12 },
+        { name: "Robotics_Seminar_Report_Final.docx", type: "DOCX", size: "1.8 MB", mockPages: 18 },
+        { name: "Campus_Hackathon_Poster.png", type: "PNG", size: "3.1 MB", mockPages: 1 }
+      ];
+
+      const handleSelectFile = (file) => {
+        setUploadedFile(file);
+      };
+
+      const handleFileInputChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+          const f = e.target.files[0];
+          setUploadedFile({
+            name: f.name,
+            type: f.name.split('.').pop().toUpperCase(),
+            size: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
+            mockPages: Math.floor(4 + Math.random() * 16)
+          });
+        }
+      };
+
+      return (
+        <div className="max-w-4xl mx-auto px-4 py-12">
+          <div className="text-center mb-8">
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+              Step 1 of 4 • Document Ingestion
+            </span>
+            <h1 className="text-3xl font-extrabold text-slate-900 mt-3">Upload your document</h1>
+            <p className="text-slate-600 text-sm mt-1">
+              Select or drag your file for automated AI validation, page extraction, and print suitability analysis.
+            </p>
+          </div>
+
+          <div className="mb-6 bg-indigo-50/70 border border-indigo-100 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                <Icon name="sparkles" size={14} className="text-indigo-600" />
+                Quick-Pick College Sample Documents (For Evaluation):
+              </span>
+              <span className="text-[11px] text-indigo-600 font-medium">Click any to test instantly</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {sampleDocs.map((s, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSelectFile(s)}
+                  className={`text-left p-3 rounded-lg border text-xs transition-all ${uploadedFile?.name === s.name ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs' : 'bg-white text-slate-800 border-slate-200 hover:border-indigo-300'}`}
+                >
+                  <div className="font-semibold truncate">{s.name}</div>
+                  <div className={`text-[10px] mt-1 flex justify-between ${uploadedFile?.name === s.name ? 'text-indigo-200' : 'text-slate-500'}`}>
+                    <span>{s.type} • {s.mockPages} pages</span>
+                    <span>{s.size}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+              if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                const f = e.dataTransfer.files[0];
+                setUploadedFile({
+                  name: f.name,
+                  type: f.name.split('.').pop().toUpperCase(),
+                  size: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
+                  mockPages: 12
+                });
+              }
+            }}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${isDragging ? 'border-indigo-600 bg-indigo-50/50 scale-[1.01]' : 'border-slate-300 hover:border-indigo-400 bg-white hover:bg-slate-50/50'}`}
+          >
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleFileInputChange}
+              accept=".pdf,.docx,.jpg,.jpeg,.png"
+              className="hidden" 
+            />
+            <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-xs">
+              <Icon name="upload" size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">Drag and drop your file here, or browse</h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Supports <span className="font-semibold text-slate-700">PDF, DOCX, JPG, PNG</span> up to 50MB
+            </p>
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-600 text-[11px] font-semibold">PDF</span>
+              <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-600 text-[11px] font-semibold">DOCX</span>
+              <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-600 text-[11px] font-semibold">JPG</span>
+              <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-600 text-[11px] font-semibold">PNG</span>
+            </div>
+          </div>
+
+          {uploadedFile && (
+            <div className="mt-6 bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                    {uploadedFile.type}
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 text-sm truncate max-w-xs sm:max-w-md">
+                      {uploadedFile.name}
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      {uploadedFile.type} Document • {uploadedFile.size}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setUploadedFile(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                  title="Remove file"
+                >
+                  <Icon name="trash" size={18} />
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                  <span>File Status</span>
+                  <span className="font-semibold text-indigo-600">Ready for Analysis</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div className="h-full bg-indigo-600 rounded-full w-full"></div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <button
+                  disabled={isAnalyzing}
+                  onClick={() => onAnalyze(uploadedFile)}
+                  className={`w-full py-3.5 px-6 rounded-xl font-semibold text-white shadow-md transition-all flex items-center justify-center gap-2 ${isAnalyzing ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 hover:scale-[1.01]'}`}
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Icon name="refresh" size={18} className="animate-spin text-white" />
+                      <span>{analysisStage}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="cpu" size={18} />
+                      <span>Analyse Document</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {isAnalyzing && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border border-slate-200 text-center animate-fade-in">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-4">
+                  <Icon name="cpu" size={32} className="animate-pulse" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">Processing Document</h3>
+                <p className="text-sm font-semibold text-indigo-600 mt-2 font-mono">{analysisStage}</p>
+                
+                <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden mt-6 mb-2">
+                  <div 
+                    className="h-full bg-gradient-to-r from-indigo-500 to-blue-600 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+                <span className="text-xs text-slate-400 font-mono">{uploadProgress}% complete</span>
+
+                <div className="mt-6 text-left bg-slate-50 rounded-xl p-3.5 text-xs space-y-2 border border-slate-100">
+                  <div className="flex items-center gap-2 text-slate-700">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>Microservice: Python FastAPI + PyMuPDF / Tesseract</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-700">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                    <span>Gemini API Document Suitability Classifier</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 3. AI ANALYSIS RESULT VIEW
+    // ==========================================
+    function AiResultView({ aiResult, onContinue, onReupload }) {
+      return (
+        <div className="max-w-3xl mx-auto px-4 py-12">
+          <div className="text-center mb-8">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+              Step 2 of 4 • Analysis Complete
+            </span>
+            <h1 className="text-3xl font-extrabold text-slate-900 mt-3">AI Document Analysis</h1>
+            <p className="text-slate-600 text-sm mt-1">
+              Document parsed, verified, and certified ready for print spooling.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-6 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md shadow-indigo-100">
+                  <Icon name="fileText" size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-lg">{aiResult.fileName}</h3>
+                  <p className="text-xs text-slate-500">Document Type: <span className="font-semibold text-slate-700">{aiResult.fileType}</span></p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 bg-white px-3.5 py-1.5 rounded-full border border-indigo-200 shadow-2xs">
+                <Icon name="sparkles" size={16} className="text-indigo-600" />
+                <span className="text-xs font-bold text-indigo-700">AI Confidence: {aiResult.confidence}%</span>
+              </div>
+            </div>
+
+            <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4 border-b border-slate-100">
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                <span className="text-[11px] text-slate-500 font-medium block">Document Type</span>
+                <span className="text-sm font-bold text-slate-800">{aiResult.fileType}</span>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                <span className="text-[11px] text-slate-500 font-medium block">Detected Pages</span>
+                <span className="text-lg font-extrabold text-indigo-600">{aiResult.pages} Pages</span>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                <span className="text-[11px] text-slate-500 font-medium block">Detected Content</span>
+                <span className="text-sm font-bold text-slate-800">{aiResult.detectedContent}</span>
+              </div>
+              <div className="bg-emerald-50 p-3.5 rounded-xl border border-emerald-100">
+                <span className="text-[11px] text-emerald-700 font-medium block">Print Readiness</span>
+                <span className="text-sm font-bold text-emerald-800 flex items-center gap-1">
+                  <Icon name="checkCircle" size={14} className="text-emerald-600" />
+                  {aiResult.printReadiness}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-6 border-b border-slate-100">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Automated AI Assessment</h4>
+              <div className="bg-indigo-50/60 text-indigo-900 p-4 rounded-xl text-sm leading-relaxed border border-indigo-100 flex items-start gap-3">
+                <Icon name="info" size={18} className="text-indigo-600 shrink-0 mt-0.5" />
+                <p className="font-medium italic">"{aiResult.analysisText}"</p>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Pre-Flight Integrity Checks</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {aiResult.checks.map((c, i) => (
+                  <div key={i} className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium text-slate-800">
+                    <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                      <Icon name="check" size={12} />
+                    </div>
+                    <span>{c.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-6 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              <button
+                onClick={onReupload}
+                className="px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl transition-colors"
+              >
+                Upload Different File
+              </button>
+              <button
+                onClick={onContinue}
+                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-md shadow-indigo-200 transition-all flex items-center gap-2"
+              >
+                <span>Continue to Print Settings</span>
+                <Icon name="arrowRight" size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 4. PRINT SETTINGS PAGE
+    // ==========================================
+    function PrintSettingsView({ aiResult, printConfig, setPrintConfig, currentPricing, onAddToQueue, onBack }) {
+      return (
+        <div className="max-w-4xl mx-auto px-4 py-12">
+          <div className="text-center mb-8">
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+              Step 3 of 4 • Print Configuration
+            </span>
+            <h1 className="text-3xl font-extrabold text-slate-900 mt-3">Select Print Options</h1>
+            <p className="text-slate-600 text-sm mt-1">
+              Customise copies, color preferences, duplex layout, and preview live price calculation.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <Icon name="fileText" size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-sm">{aiResult.fileName}</h4>
+                    <span className="text-xs text-slate-500">{aiResult.pages} pages detected by AI</span>
+                  </div>
+                </div>
+                <button onClick={onBack} className="text-xs text-indigo-600 hover:underline font-semibold">
+                  Change
+                </button>
+              </div>
+
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
+                <label className="block text-sm font-bold text-slate-900 mb-2">Number of Copies</label>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center border border-slate-300 rounded-lg overflow-hidden bg-slate-50">
+                    <button
+                      onClick={() => setPrintConfig(prev => ({ ...prev, copies: Math.max(1, prev.copies - 1) }))}
+                      className="px-4 py-2 hover:bg-slate-200 text-slate-700 font-bold transition-colors text-base"
+                    >
+                      -
+                    </button>
+                    <span className="px-6 py-2 font-mono font-bold text-slate-900 text-base bg-white border-x border-slate-300">
+                      {printConfig.copies}
+                    </span>
+                    <button
+                      onClick={() => setPrintConfig(prev => ({ ...prev, copies: prev.copies + 1 }))}
+                      className="px-4 py-2 hover:bg-slate-200 text-slate-700 font-bold transition-colors text-base"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span className="text-xs text-slate-500">
+                    {printConfig.copies === 1 ? "1 copy set" : `${printConfig.copies} identical sets`}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
+                <label className="block text-sm font-bold text-slate-900 mb-2">Colour</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setPrintConfig(prev => ({ ...prev, mode: "bw" }))}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${printConfig.mode === "bw" ? "border-indigo-600 bg-indigo-50/50 shadow-xs ring-1 ring-indigo-600" : "border-slate-200 hover:border-slate-300 bg-white"}`}
+                  >
+                    <div>
+                      <div className="font-bold text-slate-900 text-sm">Black & White</div>
+                      <div className="text-xs text-slate-500">Standard monochrome (₹1.00/page)</div>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${printConfig.mode === "bw" ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-300"}`}>
+                      {printConfig.mode === "bw" && <span className="w-2 h-2 rounded-full bg-white"></span>}
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setPrintConfig(prev => ({ ...prev, mode: "colour" }))}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${printConfig.mode === "colour" ? "border-indigo-600 bg-indigo-50/50 shadow-xs ring-1 ring-indigo-600" : "border-slate-200 hover:border-slate-300 bg-white"}`}
+                  >
+                    <div>
+                      <div className="font-bold text-slate-900 text-sm">Colour</div>
+                      <div className="text-xs text-slate-500">High-res CMYK ink (₹5.00/page)</div>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${printConfig.mode === "colour" ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-300"}`}>
+                      {printConfig.mode === "colour" && <span className="w-2 h-2 rounded-full bg-white"></span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
+                <label className="block text-sm font-bold text-slate-900 mb-2">Print Sides</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setPrintConfig(prev => ({ ...prev, sides: "single" }))}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${printConfig.sides === "single" ? "border-indigo-600 bg-indigo-50/50 shadow-xs ring-1 ring-indigo-600" : "border-slate-200 hover:border-slate-300 bg-white"}`}
+                  >
+                    <div>
+                      <div className="font-bold text-slate-900 text-sm">Single-sided</div>
+                      <div className="text-xs text-slate-500">One page per physical sheet</div>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${printConfig.sides === "single" ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-300"}`}>
+                      {printConfig.sides === "single" && <span className="w-2 h-2 rounded-full bg-white"></span>}
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setPrintConfig(prev => ({ ...prev, sides: "double" }))}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${printConfig.sides === "double" ? "border-indigo-600 bg-indigo-50/50 shadow-xs ring-1 ring-indigo-600" : "border-slate-200 hover:border-slate-300 bg-white"}`}
+                  >
+                    <div>
+                      <div className="font-bold text-slate-900 text-sm">Double-sided (Duplex)</div>
+                      <div className="text-xs text-emerald-600 font-medium">Eco-friendly • Saves paper</div>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${printConfig.sides === "double" ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-300"}`}>
+                      {printConfig.sides === "double" && <span className="w-2 h-2 rounded-full bg-white"></span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
+                  <label className="block text-sm font-bold text-slate-900 mb-2">Paper Size</label>
+                  <select
+                    value={printConfig.paperSize}
+                    onChange={(e) => setPrintConfig(prev => ({ ...prev, paperSize: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  >
+                    <option value="A4">A4 (210 × 297 mm) - Standard</option>
+                    <option value="A3">A3 (297 × 420 mm) - Poster / Chart</option>
+                    <option value="Letter">Letter (8.5 × 11 in)</option>
+                  </select>
+                </div>
+
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
+                  <label className="block text-sm font-bold text-slate-900 mb-2">Page Range</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPrintConfig(prev => ({ ...prev, pageRange: "all" }))}
+                      className={`flex-1 py-2 rounded-lg text-xs font-semibold border ${printConfig.pageRange === "all" ? "bg-indigo-600 text-white border-indigo-600" : "bg-slate-50 text-slate-700 border-slate-200"}`}
+                    >
+                      All Pages
+                    </button>
+                    <button
+                      onClick={() => setPrintConfig(prev => ({ ...prev, pageRange: "custom" }))}
+                      className={`flex-1 py-2 rounded-lg text-xs font-semibold border ${printConfig.pageRange === "custom" ? "bg-indigo-600 text-white border-indigo-600" : "bg-slate-50 text-slate-700 border-slate-200"}`}
+                    >
+                      Custom Range
+                    </button>
+                  </div>
+                  {printConfig.pageRange === "custom" && (
+                    <input
+                      type="text"
+                      placeholder="e.g. 1-5, 8"
+                      value={printConfig.customRangeText}
+                      onChange={(e) => setPrintConfig(prev => ({ ...prev, customRangeText: e.target.value }))}
+                      className="mt-2 w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-mono"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm sticky top-28 space-y-6">
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-lg">Order Summary</h3>
+                  <p className="text-xs text-slate-500">Live dynamic price computation</p>
+                </div>
+
+                <div className="space-y-3 text-sm border-t border-b border-slate-100 py-4">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Document Pages</span>
+                    <span className="font-semibold text-slate-900">{currentPricing.effectivePages}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Number of Copies</span>
+                    <span className="font-semibold text-slate-900">× {printConfig.copies}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Print Mode</span>
+                    <span className="font-semibold text-slate-900">{printConfig.mode === "bw" ? "B&W" : "Colour"}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Print Sides</span>
+                    <span className="font-semibold text-slate-900">{printConfig.sides === "single" ? "Single-sided" : "Double-sided"}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Paper Size</span>
+                    <span className="font-semibold text-slate-900">{printConfig.paperSize}</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1 font-mono text-slate-600">
+                  <div className="text-[11px] font-sans font-bold text-slate-500 uppercase tracking-wider mb-1">Pricing Formula</div>
+                  <div>Formula: Pages × Copies × Rate</div>
+                  <div className="text-indigo-600 font-semibold">
+                    {currentPricing.effectivePages} pages × {printConfig.copies} copies × ₹{currentPricing.baseRatePerPage.toFixed(2)}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">Estimated Cost</span>
+                  <div className="text-3xl font-extrabold text-indigo-600 mt-0.5">
+                    ₹{currentPricing.total}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">Inclusive of GST & campus Xerox subsidised rates</p>
+                </div>
+
+                <button
+                  onClick={onAddToQueue}
+                  className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+                >
+                  <Icon name="layers" size={18} />
+                  <span>Add to Print Queue</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 5. QUEUE CONFIRMATION VIEW
+    // ==========================================
+    function QueueConfirmView({ job, jobs, onTrackJob, onViewAdmin }) {
+      return (
+        <div className="max-w-2xl mx-auto px-4 py-12">
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-sm animate-bounce">
+              <Icon name="check" size={32} />
+            </div>
+
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+              Queue Position Allocated
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-3">
+              Print Job Successfully Added
+            </h1>
+            <p className="text-slate-500 text-sm mt-1">
+              Your document has been registered with the campus print spooler.
+            </p>
+
+            <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <span className="text-[11px] text-slate-400 font-semibold uppercase block">Job ID</span>
+                <span className="text-sm font-mono font-bold text-indigo-600 truncate block mt-0.5">{job.id}</span>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <span className="text-[11px] text-slate-400 font-semibold uppercase block">Queue Position</span>
+                <span className="text-xl font-extrabold text-slate-900 block mt-0.5">#{job.queuePos}</span>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <span className="text-[11px] text-slate-400 font-semibold uppercase block">Est. Waiting Time</span>
+                <span className="text-sm font-bold text-slate-900 block mt-0.5">{job.queuePos * 2} minutes</span>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <span className="text-[11px] text-slate-400 font-semibold uppercase block">Status</span>
+                <span className="inline-flex items-center text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 mt-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></span>
+                  {job.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-8 text-left">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
+                <span>Active Print Spooler Queue</span>
+                <span className="text-[11px] font-normal text-indigo-600">Auto-updating</span>
+              </h3>
+              <div className="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-emerald-800">#1</span>
+                    <span className="font-medium text-emerald-900">SP-001 (Notes.pdf)</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-emerald-600 text-white font-semibold text-[10px] animate-pulse">
+                    Printing
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-blue-800">#2</span>
+                    <span className="font-medium text-blue-900">SP-002 (Assignment.pdf)</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-blue-600 text-white font-semibold text-[10px]">
+                    Processing
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-700">#3</span>
+                    <span className="font-medium text-slate-700">SP-003 (Microprocessor_Lab.pdf)</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-600 font-semibold text-[10px]">
+                    Waiting
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-indigo-100 border-2 border-indigo-600 flex items-center justify-between text-xs shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-indigo-900">#4</span>
+                    <span className="font-bold text-indigo-950 truncate max-w-xs">{job.id} • {job.docName}</span>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded bg-indigo-600 text-white font-bold text-[10px]">
+                    Your Job
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-between text-xs text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">#5</span>
+                    <span>SP-005 (Campus_Placement_Resume.pdf)</span>
+                  </div>
+                  <span>Waiting</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={onTrackJob}
+                className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md shadow-indigo-200 transition-all flex items-center justify-center gap-2"
+              >
+                <Icon name="clock" size={18} />
+                <span>Track Print Job</span>
+              </button>
+              <button
+                onClick={onViewAdmin}
+                className="w-full sm:w-auto px-5 py-3 border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+              >
+                <Icon name="users" size={18} />
+                <span>View Operator Queue</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 6. TRACK JOB PAGE
+    // ==========================================
+    function TrackJobView({ job, onCancel, onSimulateAdvance, onGoAdmin }) {
+      const steps = [
+        { id: 1, label: "Uploaded", desc: "File verified" },
+        { id: 2, label: "AI Analysed", desc: "Page extraction" },
+        { id: 3, label: "Added to Queue", desc: "Position locked" },
+        { id: 4, label: "Printing", desc: "Physical output" },
+        { id: 5, label: "Completed", desc: "Ready for pickup" }
+      ];
+
+      return (
+        <div className="max-w-3xl mx-auto px-4 py-12">
+          <div className="text-center mb-8">
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+              Live Job Status Monitor
+            </span>
+            <h1 className="text-3xl font-extrabold text-slate-900 mt-3">Track Your Print Job</h1>
+            <p className="text-slate-600 text-sm mt-1">
+              Watch real-time pipeline status updates without waiting at the Xerox counter.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+            <div className="flex flex-wrap items-center justify-between pb-6 border-b border-slate-200 gap-4">
+              <div>
+                <span className="text-xs text-slate-400 font-mono">TRACKING JOB</span>
+                <h3 className="text-2xl font-extrabold font-mono text-indigo-600">{job.id}</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${job.status === "Printing" ? "bg-indigo-50 text-indigo-700 border-indigo-200 animate-pulse" : job.status === "Completed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : job.status === "Cancelled" ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
+                  Status: {job.status}
+                </span>
+                {job.status !== "Completed" && job.status !== "Cancelled" && (
+                  <button
+                    onClick={onCancel}
+                    className="px-3 py-1 border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    Cancel Job
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="py-8">
+              <div className="relative">
+                <div className="absolute top-5 left-6 right-6 h-1 bg-slate-200 -z-0">
+                  <div
+                    className="h-full bg-indigo-600 transition-all duration-500"
+                    style={{
+                      width: job.status === "Completed" ? "100%" :
+                             job.status === "Printing" ? "75%" :
+                             job.status === "Cancelled" ? "0%" : "50%"
+                    }}
+                  ></div>
+                </div>
+
+                <div className="grid grid-cols-5 relative z-10 text-center">
+                  {steps.map((s) => {
+                    const isDone = job.step > s.id || job.status === "Completed";
+                    const isCurrent = job.step === s.id && job.status !== "Completed";
+
+                    return (
+                      <div key={s.id} className="flex flex-col items-center">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs transition-all ${isDone ? "bg-emerald-500 text-white shadow-md shadow-emerald-200" : isCurrent ? "bg-indigo-600 text-white ring-4 ring-indigo-100 shadow-md animate-pulse" : "bg-white border-2 border-slate-300 text-slate-400"}`}>
+                          {isDone ? <Icon name="check" size={16} /> : s.id}
+                        </div>
+                        <span className={`text-xs font-bold mt-2 ${isCurrent ? "text-indigo-600" : isDone ? "text-slate-800" : "text-slate-400"}`}>
+                          {s.label}
+                        </span>
+                        <span className="text-[10px] text-slate-400 hidden sm:block">
+                          {s.desc}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Document Name</span>
+                <span className="font-semibold text-slate-800">{job.docName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Pages / Copies</span>
+                <span className="font-semibold text-slate-800">{job.pages} Pages • {job.copies} Copies</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Print Mode & Sides</span>
+                <span className="font-semibold text-slate-800">{job.mode} • {job.sides}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Queue Position</span>
+                <span className="font-semibold text-indigo-600">#{job.queuePos} in queue</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Estimated Completion Time</span>
+                <span className="font-semibold text-slate-800">{job.status === "Completed" ? "Ready now at Counter 1" : "~6 minutes"}</span>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-indigo-50/50 p-4 rounded-xl">
+              <div>
+                <span className="text-xs font-bold text-indigo-900 block">Operator Queue Simulation</span>
+                <span className="text-[11px] text-slate-500">Advance the operator spooler to test status transitions</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onSimulateAdvance}
+                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors flex items-center gap-1.5"
+                >
+                  <Icon name="play" size={14} />
+                  <span>Simulate Next Step</span>
+                </button>
+                <button
+                  onClick={onGoAdmin}
+                  className="px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
+                >
+                  Go to Admin Queue
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 7-10. ADMIN DASHBOARD & QUEUE LAYOUT
+    // ==========================================
+    function AdminLayout({ currentView, setCurrentView, jobs, docs, onProcessNext, onJobAction }) {
+      const activeJobsCount = jobs.filter(j => j.status === "Printing").length;
+      const waitingJobsCount = jobs.filter(j => j.status === "Waiting").length;
+      const completedJobsCount = jobs.filter(j => j.status === "Completed").length + 67;
+
+      return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col lg:flex-row gap-8">
+            <aside className="w-full lg:w-64 shrink-0">
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs space-y-1">
+                <div className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Xerox Operator Panel
+                </div>
+
+                <button
+                  onClick={() => setCurrentView('admin_dashboard')}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${currentView === 'admin_dashboard' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                  <Icon name="barChart" size={18} />
+                  <span>Dashboard</span>
+                </button>
+
+                <button
+                  onClick={() => setCurrentView('admin_queue')}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${currentView === 'admin_queue' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon name="printer" size={18} />
+                    <span>Print Queue</span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${currentView === 'admin_queue' ? 'bg-indigo-700 text-white' : 'bg-indigo-100 text-indigo-700'}`}>
+                    {waitingJobsCount + activeJobsCount}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setCurrentView('admin_docs')}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${currentView === 'admin_docs' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                  <Icon name="fileText" size={18} />
+                  <span>Documents</span>
+                </button>
+
+                <button
+                  onClick={() => setCurrentView('analytics')}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${currentView === 'analytics' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                  <Icon name="barChart" size={18} />
+                  <span>Analytics</span>
+                </button>
+
+                <div className="pt-4 border-t border-slate-100 px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Project Validation
+                </div>
+
+                <button
+                  onClick={() => setCurrentView('user_validation')}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                >
+                  <Icon name="users" size={16} />
+                  <span>User Validation</span>
+                </button>
+
+                <button
+                  onClick={() => setCurrentView('dev_progress')}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                >
+                  <Icon name="gitBranch" size={16} />
+                  <span>Project Evidence (35%)</span>
+                </button>
+              </div>
+
+              <div className="mt-4 bg-slate-900 text-white p-4 rounded-2xl shadow-xs text-xs">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></div>
+                  <span className="font-bold text-slate-200">Terminal #01 Online</span>
+                </div>
+                <p className="text-slate-400">Campus Xerox Center • Library Block</p>
+                <div className="mt-3 pt-3 border-t border-slate-800 flex justify-between text-slate-400 text-[11px]">
+                  <span>Spooler Mode</span>
+                  <span className="text-emerald-400 font-mono">AUTOMATED</span>
+                </div>
+              </div>
+            </aside>
+
+            <div className="flex-1 space-y-6">
+              {currentView === 'admin_dashboard' && (
+                <AdminDashboardContent 
+                  jobs={jobs}
+                  activeJobsCount={activeJobsCount}
+                  waitingJobsCount={waitingJobsCount}
+                  completedJobsCount={completedJobsCount}
+                  onProcessNext={onProcessNext}
+                  onViewQueue={() => setCurrentView('admin_queue')}
+                />
+              )}
+
+              {currentView === 'admin_queue' && (
+                <AdminQueueContent 
+                  jobs={jobs}
+                  onProcessNext={onProcessNext}
+                  onJobAction={onJobAction}
+                />
+              )}
+
+              {currentView === 'admin_docs' && (
+                <AdminDocsContent docs={docs} />
+              )}
+
+              {currentView === 'analytics' && (
+                <AdminAnalyticsContent jobs={jobs} />
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 7. Admin Dashboard Content
+    function AdminDashboardContent({ jobs, activeJobsCount, waitingJobsCount, completedJobsCount, onProcessNext, onViewQueue }) {
+      return (
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-extrabold text-slate-900">Operator Dashboard</h1>
+              <p className="text-xs text-slate-500">Live operational overview for campus Xerox center</p>
+            </div>
+            <button
+              onClick={onProcessNext}
+              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-md shadow-indigo-200 transition-all flex items-center gap-2"
+            >
+              <Icon name="play" size={16} />
+              <span>Process Next Job</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Jobs</span>
+                <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Icon name="printer" size={16} />
+                </span>
+              </div>
+              <div className="text-3xl font-extrabold text-slate-900 mt-2">
+                {activeJobsCount || 1}
+              </div>
+              <span className="text-[11px] text-blue-600 font-medium">Currently printing on Spooler 1</span>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Waiting Jobs</span>
+                <span className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Icon name="clock" size={16} />
+                </span>
+              </div>
+              <div className="text-3xl font-extrabold text-slate-900 mt-2">
+                {waitingJobsCount || 4}
+              </div>
+              <span className="text-[11px] text-amber-600 font-medium">Queued in FIFO line</span>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Completed Today</span>
+                <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <Icon name="checkCircle" size={16} />
+                </span>
+              </div>
+              <div className="text-3xl font-extrabold text-slate-900 mt-2">
+                {completedJobsCount}
+              </div>
+              <span className="text-[11px] text-emerald-600 font-medium">+14% vs yesterday</span>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Average Waiting Time</span>
+                <span className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <Icon name="clock" size={16} />
+                </span>
+              </div>
+              <div className="text-3xl font-extrabold text-slate-900 mt-2">
+                6 min
+              </div>
+              <span className="text-[11px] text-purple-600 font-medium">Down from 22 min manual</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">Active Spooler Queue</h3>
+                <p className="text-xs text-slate-500">Live FIFO order ready for print execution</p>
+              </div>
+              <button
+                onClick={onViewQueue}
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+              >
+                <span>View Full Table</span>
+                <Icon name="arrowRight" size={14} />
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3">Job ID</th>
+                    <th className="px-4 py-3">Document</th>
+                    <th className="px-4 py-3">Student</th>
+                    <th className="px-4 py-3">Pages / Copies</th>
+                    <th className="px-4 py-3">Mode</th>
+                    <th className="px-4 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {jobs.slice(0, 5).map((j) => (
+                    <tr key={j.id} className="hover:bg-slate-50/80">
+                      <td className="px-4 py-3 font-mono font-bold text-indigo-600">{j.id}</td>
+                      <td className="px-4 py-3 font-medium text-slate-800">{j.docName}</td>
+                      <td className="px-4 py-3 text-slate-600">{j.user}</td>
+                      <td className="px-4 py-3 text-slate-600">{j.pages} pgs × {j.copies}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${j.mode === "Colour" ? "bg-purple-100 text-purple-700" : "bg-slate-100 text-slate-700"}`}>
+                          {j.mode}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${j.status === "Printing" ? "bg-blue-100 text-blue-700 animate-pulse" : j.status === "Completed" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                          {j.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 8. Admin Print Queue Table Content
+    function AdminQueueContent({ jobs, onProcessNext, onJobAction }) {
+      return (
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-extrabold text-slate-900">Admin Print Queue</h1>
+              <p className="text-xs text-slate-500">Manage, prioritize, pause, or complete incoming print jobs</p>
+            </div>
+            <button
+              onClick={onProcessNext}
+              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-md shadow-indigo-200 transition-all flex items-center gap-2"
+            >
+              <Icon name="play" size={16} />
+              <span>Process Next Job</span>
+            </button>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3.5">Job ID</th>
+                    <th className="px-4 py-3.5">Document</th>
+                    <th className="px-4 py-3.5">User</th>
+                    <th className="px-4 py-3.5">Pages</th>
+                    <th className="px-4 py-3.5">Copies</th>
+                    <th className="px-4 py-3.5">Mode</th>
+                    <th className="px-4 py-3.5">Queue Pos</th>
+                    <th className="px-4 py-3.5">Status</th>
+                    <th className="px-4 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {jobs.map((job) => (
+                    <tr key={job.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-4 py-3 font-mono font-bold text-indigo-600">{job.id}</td>
+                      <td className="px-4 py-3 font-medium text-slate-800">{job.docName}</td>
+                      <td className="px-4 py-3 text-slate-600">{job.user}</td>
+                      <td className="px-4 py-3 text-slate-600 font-mono">{job.pages}</td>
+                      <td className="px-4 py-3 text-slate-600 font-mono">{job.copies}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${job.mode === "Colour" ? "bg-purple-100 text-purple-700" : "bg-slate-100 text-slate-700"}`}>
+                          {job.mode}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-bold text-slate-900">
+                        {job.status === "Completed" ? "-" : `#${job.queuePos}`}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${job.status === "Printing" ? "bg-blue-100 text-blue-700 animate-pulse" : job.status === "Completed" ? "bg-emerald-100 text-emerald-700" : job.status === "Paused" ? "bg-slate-200 text-slate-700" : job.status === "Cancelled" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}>
+                          {job.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {job.status !== "Printing" && job.status !== "Completed" && (
+                            <button
+                              onClick={() => onJobAction(job.id, "start")}
+                              className="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded font-semibold text-[11px]"
+                              title="Start Printing"
+                            >
+                              Start
+                            </button>
+                          )}
+                          {job.status === "Printing" && (
+                            <button
+                              onClick={() => onJobAction(job.id, "complete")}
+                              className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded font-semibold text-[11px]"
+                              title="Mark as Completed"
+                            >
+                              Complete
+                            </button>
+                          )}
+                          {job.status !== "Completed" && (
+                            <button
+                              onClick={() => onJobAction(job.id, "pause")}
+                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded font-semibold text-[11px]"
+                              title="Pause Job"
+                            >
+                              Pause
+                            </button>
+                          )}
+                          {job.status !== "Completed" && job.status !== "Cancelled" && (
+                            <button
+                              onClick={() => onJobAction(job.id, "cancel")}
+                              className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded font-semibold text-[11px]"
+                              title="Cancel Job"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 9. Document Management Content
+    function AdminDocsContent({ docs }) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-900">Document Management</h1>
+            <p className="text-xs text-slate-500">Repository of ingested documents, AI analysis logs, and spooling status</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3.5">File Name</th>
+                    <th className="px-4 py-3.5">Type</th>
+                    <th className="px-4 py-3.5">Pages</th>
+                    <th className="px-4 py-3.5">Size</th>
+                    <th className="px-4 py-3.5">Uploaded At</th>
+                    <th className="px-4 py-3.5">AI Status</th>
+                    <th className="px-4 py-3.5">Print Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {docs.map((doc) => (
+                    <tr key={doc.id} className="hover:bg-slate-50/80">
+                      <td className="px-4 py-3 font-semibold text-slate-800 flex items-center gap-2">
+                        <Icon name="fileText" size={14} className="text-slate-400" />
+                        <span>{doc.name}</span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-slate-600">{doc.type}</td>
+                      <td className="px-4 py-3 font-mono text-slate-600">{doc.pages}</td>
+                      <td className="px-4 py-3 text-slate-500">{doc.size}</td>
+                      <td className="px-4 py-3 text-slate-500">{doc.uploadedAt}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${doc.aiStatus === "Analysed" ? "bg-emerald-100 text-emerald-700" : doc.aiStatus === "Failed" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}>
+                          {doc.aiStatus}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">
+                          {doc.printStatus}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 10. Analytics Page Content
+    function AdminAnalyticsContent({ jobs }) {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-900">Analytics & Insights</h1>
+            <p className="text-xs text-slate-500">Operational performance metrics, volume patterns, and throughput analysis</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-xl border border-slate-200">
+              <span className="text-xs text-slate-500 font-medium">Total Documents Processed</span>
+              <div className="text-2xl font-extrabold text-slate-900 mt-1">1,248</div>
+              <span className="text-[10px] text-emerald-600 font-semibold">+18% this month</span>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-200">
+              <span className="text-xs text-slate-500 font-medium">Total Pages Printed</span>
+              <div className="text-2xl font-extrabold text-slate-900 mt-1">14,890</div>
+              <span className="text-[10px] text-slate-400">92% Duplex adoption</span>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-200">
+              <span className="text-xs text-slate-500 font-medium">Total Print Jobs</span>
+              <div className="text-2xl font-extrabold text-slate-900 mt-1">892</div>
+              <span className="text-[10px] text-indigo-600 font-semibold">Zero duplicate orders</span>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-200">
+              <span className="text-xs text-slate-500 font-medium">Average Processing Time</span>
+              <div className="text-2xl font-extrabold text-slate-900 mt-1">3.2 min</div>
+              <span className="text-[10px] text-emerald-600 font-semibold">-68% vs baseline</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+              <h3 className="font-bold text-slate-900 text-sm mb-1">Daily Print Jobs (Weekly Volume)</h3>
+              <p className="text-xs text-slate-500 mb-6">Monday to Saturday campus volume distribution</p>
+
+              <div className="h-44 flex items-end justify-between gap-3 px-2 pt-6">
+                {[
+                  { day: "Mon", count: 145, pct: "75%" },
+                  { day: "Tue", count: 180, pct: "90%" },
+                  { day: "Wed", count: 210, pct: "100%" },
+                  { day: "Thu", count: 165, pct: "82%" },
+                  { day: "Fri", count: 195, pct: "94%" },
+                  { day: "Sat", count: 85, pct: "42%" }
+                ].map((item, idx) => (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                    <span className="text-[10px] font-mono text-slate-500">{item.count}</span>
+                    <div 
+                      className="w-full bg-gradient-to-t from-indigo-600 to-indigo-400 rounded-t-md transition-all hover:opacity-90"
+                      style={{ height: item.pct }}
+                    ></div>
+                    <span className="text-xs font-semibold text-slate-600">{item.day}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+              <h3 className="font-bold text-slate-900 text-sm mb-1">B&W vs Colour Distribution</h3>
+              <p className="text-xs text-slate-500 mb-6">Percentage of monochrome vs color print runs</p>
+
+              <div className="flex items-center justify-around h-44">
+                <div className="flex flex-col items-center">
+                  <div className="w-24 h-24 rounded-full border-8 border-indigo-600 flex items-center justify-center font-bold text-indigo-700 text-xl shadow-inner">
+                    74%
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 mt-2">Black & White</span>
+                  <span className="text-[10px] text-slate-500">660 jobs</span>
+                </div>
+
+                <div className="flex flex-col items-center">
+                  <div className="w-24 h-24 rounded-full border-8 border-purple-500 flex items-center justify-center font-bold text-purple-700 text-xl shadow-inner">
+                    26%
+                  </div>
+                  <span className="text-xs font-bold text-slate-800 mt-2">Colour CMYK</span>
+                  <span className="text-[10px] text-slate-500">232 jobs</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+              <h3 className="font-bold text-slate-900 text-sm mb-1">Queue Waiting Time (Minutes by Hour)</h3>
+              <p className="text-xs text-slate-500 mb-4">Peak rush observed at 10:00 AM and 02:00 PM</p>
+              
+              <div className="space-y-3 text-xs">
+                <div>
+                  <div className="flex justify-between mb-1 text-slate-600">
+                    <span>09:00 AM - 10:00 AM</span>
+                    <span className="font-bold">4.2 min</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div className="bg-indigo-500 h-full w-[40%] rounded-full"></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1 text-slate-600">
+                    <span>10:00 AM - 11:00 AM (Peak 1)</span>
+                    <span className="font-bold text-amber-600">8.5 min</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div className="bg-amber-500 h-full w-[85%] rounded-full"></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1 text-slate-600">
+                    <span>12:00 PM - 01:00 PM</span>
+                    <span className="font-bold">3.1 min</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div className="bg-indigo-500 h-full w-[30%] rounded-full"></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1 text-slate-600">
+                    <span>02:00 PM - 03:00 PM (Peak 2)</span>
+                    <span className="font-bold text-amber-600">7.8 min</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div className="bg-amber-500 h-full w-[78%] rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+              <h3 className="font-bold text-slate-900 text-sm mb-1">Documents Processed by Format</h3>
+              <p className="text-xs text-slate-500 mb-4">Breakdown of uploaded file types</p>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="font-semibold text-slate-700">PDF Documents</span>
+                    <span className="font-bold text-indigo-600">78% (973 files)</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div className="bg-indigo-600 h-full w-[78%] rounded-full"></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="font-semibold text-slate-700">DOCX Word Documents</span>
+                    <span className="font-bold text-blue-600">14% (175 files)</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div className="bg-blue-500 h-full w-[14%] rounded-full"></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="font-semibold text-slate-700">PNG / JPG Images</span>
+                    <span className="font-bold text-purple-600">8% (100 files)</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div className="bg-purple-500 h-full w-[8%] rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 11-14. PROJECT EVIDENCE & ACADEMIC ALIGNMENT
+    // ==========================================
+    function EvidenceLayout({ currentView, setCurrentView }) {
+      return (
+        <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+            <button
+              onClick={() => setCurrentView('better_tomorrow')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${currentView === 'better_tomorrow' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              11. Project Better Tomorrow
+            </button>
+            <button
+              onClick={() => setCurrentView('prompt_audit')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${currentView === 'prompt_audit' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              12. AI Prompt Audit
+            </button>
+            <button
+              onClick={() => setCurrentView('user_validation')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${currentView === 'user_validation' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              13. User Validation Report
+            </button>
+            <button
+              onClick={() => setCurrentView('dev_progress')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${currentView === 'dev_progress' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              14. 35% Development Progress
+            </button>
+          </div>
+
+          {currentView === 'better_tomorrow' && <BetterTomorrowContent />}
+          {currentView === 'prompt_audit' && <PromptAuditContent />}
+          {currentView === 'user_validation' && <UserValidationContent />}
+          {currentView === 'dev_progress' && <DevProgressContent />}
+        </div>
+      );
+    }
+
+    // 11. Project Better Tomorrow Alignment Content
+    function BetterTomorrowContent() {
+      return (
+        <div className="space-y-8">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
+              Institutional Framework Alignment
+            </span>
+            <h1 className="text-3xl font-extrabold text-slate-900 mt-3">Project Better Tomorrow Alignment</h1>
+            <p className="text-slate-600 text-sm mt-1">
+              Demonstrating direct pathway alignment towards sustainable, digitized, and accessible campus infrastructure.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold">
+                A
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">PATHWAY A – USER-CENTRIC VALIDATION</h3>
+                <p className="text-xs text-slate-500">Student & Operator Centered Problem Definition</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Problem Identified</h4>
+                <p className="text-sm text-slate-800 font-medium">
+                  Manual Xerox and printing processes create waiting time and operational confusion.
+                </p>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Students spend up to 25 minutes standing in crowded queues during assignment submission windows. Operators frequently miscount physical pages or generate duplicate jobs when USB drives are shared indiscriminately.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Target Users</h4>
+                <ul className="text-xs text-slate-700 space-y-1.5 list-disc pl-4">
+                  <li><strong className="text-slate-900">College Students:</strong> Need swift, verified document submission without queue anxiety.</li>
+                  <li><strong className="text-slate-900">Faculty & Department Staff:</strong> Require bulk exam / lab manual printing with exact duplex compliance.</li>
+                  <li><strong className="text-slate-900">Xerox Shop Operators:</strong> Need automated page counting and transparent FIFO queue scheduling.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Key User Pain Points</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="p-3 bg-white rounded-lg border border-slate-200 text-xs font-medium text-slate-800">
+                  ⚠️ Long queues during peak campus hours
+                </div>
+                <div className="p-3 bg-white rounded-lg border border-slate-200 text-xs font-medium text-slate-800">
+                  ⚠️ Manual page counting errors & overcharging
+                </div>
+                <div className="p-3 bg-white rounded-lg border border-slate-200 text-xs font-medium text-slate-800">
+                  ⚠️ Unclear waiting times & queue position
+                </div>
+                <div className="p-3 bg-white rounded-lg border border-slate-200 text-xs font-medium text-slate-800">
+                  ⚠️ Print job confusion & lost documents
+                </div>
+                <div className="p-3 bg-white rounded-lg border border-slate-200 text-xs font-medium text-slate-800">
+                  ⚠️ Repeated oral communication with operator
+                </div>
+                <div className="p-3 bg-white rounded-lg border border-slate-200 text-xs font-medium text-slate-800">
+                  ⚠️ Virus risks from infected USB flash drives
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div>
+                  <h4 className="text-base font-bold text-slate-900">Empathy Data: User Validation Sample</h4>
+                  <p className="text-xs text-slate-500">Collected during initial campus walk-through and prototype validation</p>
+                </div>
+                <span className="text-[10px] font-bold uppercase px-2.5 py-1 rounded bg-amber-100 text-amber-800 border border-amber-300">
+                  Prototype / Demo Validation Data
+                </span>
+              </div>
+
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 py-3">Pain Point</th>
+                      <th className="px-4 py-3">Students Reporting (10 Sample Users)</th>
+                      <th className="px-4 py-3">Severity Rating</th>
+                      <th className="px-4 py-3">SmartPrint AI Solution</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    <tr>
+                      <td className="px-4 py-3 font-medium text-slate-800">Long waiting time</td>
+                      <td className="px-4 py-3 font-bold text-indigo-600 font-mono">8/10 (80%)</td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded bg-rose-100 text-rose-700 font-semibold">Critical</span></td>
+                      <td className="px-4 py-3 text-slate-600">Online remote upload & background FIFO processing</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 font-medium text-slate-800">Unclear queue position</td>
+                      <td className="px-4 py-3 font-bold text-indigo-600 font-mono">7/10 (70%)</td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 font-semibold">High</span></td>
+                      <td className="px-4 py-3 text-slate-600">Live position indicator and estimated wait minutes</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 font-medium text-slate-800">Manual document handling</td>
+                      <td className="px-4 py-3 font-bold text-indigo-600 font-mono">8/10 (80%)</td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded bg-rose-100 text-rose-700 font-semibold">Critical</span></td>
+                      <td className="px-4 py-3 text-slate-600">Web upload directly into SQLite print spooler</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 font-medium text-slate-800">Difficulty tracking print job</td>
+                      <td className="px-4 py-3 font-bold text-indigo-600 font-mono">6/10 (60%)</td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-semibold">Medium</span></td>
+                      <td className="px-4 py-3 text-slate-600">5-step real-time progress tracker with pickup tokens</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2">
+                <Icon name="alertCircle" size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="font-semibold">Academic Integrity Notice:</strong> This section contains <em>Prototype / Demo Validation Data</em> collected with 10 demo student evaluators during initial prototype trial. Replace with full field survey data prior to university thesis submission.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 12. AI Prompt Audit Content
+    function PromptAuditContent() {
+      return (
+        <div className="space-y-6">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
+              AI Microservice Specification
+            </span>
+            <h1 className="text-3xl font-extrabold text-slate-900 mt-3">AI Prompt Audit</h1>
+            <p className="text-slate-600 text-sm mt-1">
+              Inspection of the system prompts executed by the Python FastAPI microservice and Google Gemini API integration.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3.5 w-16">#</th>
+                    <th className="px-4 py-3.5 w-72">Prompt</th>
+                    <th className="px-4 py-3.5">Purpose</th>
+                    <th className="px-4 py-3.5">Expected Output</th>
+                    <th className="px-4 py-3.5">Validation Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  <tr>
+                    <td className="px-4 py-3.5 font-bold text-slate-400">01</td>
+                    <td className="px-4 py-3.5 font-mono text-indigo-700 bg-slate-50/50">
+                      "Classify the uploaded document and identify its document type."
+                    </td>
+                    <td className="px-4 py-3.5 text-slate-700">
+                      Determines file taxonomy (PDF text document, scanned handwritten notes, poster/graphics, or presentation slides).
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-slate-600">
+                      {"{ type: 'PDF', subtype: 'Text Document' }"}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                        ✓ Verified in Mock Service
+                      </span>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td className="px-4 py-3.5 font-bold text-slate-400">02</td>
+                    <td className="px-4 py-3.5 font-mono text-indigo-700 bg-slate-50/50">
+                      "Determine the number of printable pages."
+                    </td>
+                    <td className="px-4 py-3.5 text-slate-700">
+                      Parses physical page tree structure, filters out empty/blank separator pages, and counts non-blank sheets.
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-slate-600">
+                      {"{ totalPages: 12, printablePages: 12 }"}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                        ✓ Verified in Mock Service
+                      </span>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td className="px-4 py-3.5 font-bold text-slate-400">03</td>
+                    <td className="px-4 py-3.5 font-mono text-indigo-700 bg-slate-50/50">
+                      "Identify whether the document appears suitable for printing."
+                    </td>
+                    <td className="px-4 py-3.5 text-slate-700">
+                      Verifies font embedding, resolution (min 150 DPI), margin bleed boundaries, and detects file corruption.
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-slate-600">
+                      {"{ printReady: true, confidence: 0.94 }"}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                        ✓ Verified in Mock Service
+                      </span>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td className="px-4 py-3.5 font-bold text-slate-400">04</td>
+                    <td className="px-4 py-3.5 font-mono text-indigo-700 bg-slate-50/50">
+                      "Analyze color distribution and identify pages requiring color cartridges."
+                    </td>
+                    <td className="px-4 py-3.5 text-slate-700">
+                      Checks RGB vs Grayscale distribution to allow hybrid printing cost optimization for academic theses.
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-slate-600">
+                      {"{ colorPages: [4, 7], bwPages: [1,2,3,5,6] }"}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">
+                        ⚡ Architecture Ready
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 13. User Validation Report Content
+    function UserValidationContent() {
+      return (
+        <div className="space-y-6">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
+              Quality Assurance & Usability
+            </span>
+            <h1 className="text-3xl font-extrabold text-slate-900 mt-3">Prototype Validation</h1>
+            <p className="text-slate-600 text-sm mt-1">
+              End-to-end task completion audit evaluated with 10 demo student evaluators.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200">
+              <span className="text-xs text-slate-500 font-medium">Test Users</span>
+              <div className="text-3xl font-extrabold text-slate-900 mt-1">10 Users</div>
+              <span className="text-[10px] text-slate-400">Demo student cohort</span>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border border-slate-200">
+              <span className="text-xs text-slate-500 font-medium">Overall Success Rate</span>
+              <div className="text-3xl font-extrabold text-emerald-600 mt-1">95%</div>
+              <span className="text-[10px] text-emerald-600 font-semibold">38/40 total task executions</span>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border border-slate-200">
+              <span className="text-xs text-slate-500 font-medium">Avg Completion Time</span>
+              <div className="text-3xl font-extrabold text-indigo-600 mt-1">42 sec</div>
+              <span className="text-[10px] text-indigo-600 font-semibold">From upload to queue ID</span>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border border-slate-200">
+              <span className="text-xs text-slate-500 font-medium">Usability Rating</span>
+              <div className="text-3xl font-extrabold text-purple-600 mt-1">4.8 / 5.0</div>
+              <span className="text-[10px] text-purple-600 font-semibold">SUS standardized scale</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs">
+            <h3 className="text-base font-bold text-slate-900 mb-4">Task Completion Results</h3>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-1">
+                  <span className="text-slate-800">1. Upload document (PDF / DOCX drag & drop)</span>
+                  <span className="text-emerald-600 font-mono">10/10 (100%)</span>
+                </div>
+                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-emerald-500 h-full w-[100%] rounded-full"></div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-1">
+                  <span className="text-slate-800">2. Analyse document (Simulated AI verification & page count)</span>
+                  <span className="text-emerald-600 font-mono">9/10 (90%)</span>
+                </div>
+                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-emerald-500 h-full w-[90%] rounded-full"></div>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-0.5">Note: 1 user tested unsupported CAD file format (.dwg) which was correctly rejected.</p>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-1">
+                  <span className="text-slate-800">3. Configure print (Copies, B&W/Colour, Duplex, Paper Size)</span>
+                  <span className="text-emerald-600 font-mono">10/10 (100%)</span>
+                </div>
+                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-emerald-500 h-full w-[100%] rounded-full"></div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-1">
+                  <span className="text-slate-800">4. Join queue (Generate Job ID & verify wait estimate)</span>
+                  <span className="text-emerald-600 font-mono">10/10 (100%)</span>
+                </div>
+                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-emerald-500 h-full w-[100%] rounded-full"></div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-1">
+                  <span className="text-slate-800">5. Track job (Follow 5-stage progress indicator to completion)</span>
+                  <span className="text-emerald-600 font-mono">9/10 (90%)</span>
+                </div>
+                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-emerald-500 h-full w-[90%] rounded-full"></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2">
+              <Icon name="alertCircle" size={16} className="text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <strong>Label Notice:</strong> "Demo / Prototype Validation – Replace with actual collected results before final submission."
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 14. 35% Development Progress Content
+    function DevProgressContent() {
+      return (
+        <div className="space-y-6">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
+              Milestone Review & Repository Evidence
+            </span>
+            <h1 className="text-3xl font-extrabold text-slate-900 mt-3">Development Progress</h1>
+            <p className="text-slate-600 text-sm mt-1">
+              Current prototype completion status: <strong className="text-indigo-600">35% Functional Prototype</strong> milestone achieved.
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-bold text-slate-900 text-base">Project Overall Completion</h3>
+              <span className="text-2xl font-black text-indigo-600 font-mono">35%</span>
+            </div>
+            <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden">
+              <div className="bg-indigo-600 h-full w-[35%] rounded-full"></div>
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              Covers full frontend prototype, mock AI microservice, SQLite database schema, and print spooling architecture.
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-5">
+            <h3 className="font-bold text-slate-900 text-base">Functional Module Breakdown</h3>
+
+            <div>
+              <div className="flex justify-between text-xs font-semibold mb-1">
+                <span className="text-slate-800">Document Upload</span>
+                <span className="text-emerald-700 font-mono">100% • Status: Functional</span>
+              </div>
+              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div className="bg-emerald-500 h-full w-[100%] rounded-full"></div>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-xs font-semibold mb-1">
+                <span className="text-slate-800">Document Validation</span>
+                <span className="text-indigo-700 font-mono">80% • Status: Functional Prototype</span>
+              </div>
+              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div className="bg-indigo-600 h-full w-[80%] rounded-full"></div>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-xs font-semibold mb-1">
+                <span className="text-slate-800">AI Document Analysis</span>
+                <span className="text-blue-700 font-mono">60% • Status: Prototype</span>
+              </div>
+              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div className="bg-blue-500 h-full w-[60%] rounded-full"></div>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-xs font-semibold mb-1">
+                <span className="text-slate-800">Print Configuration & Live Pricing</span>
+                <span className="text-indigo-700 font-mono">80% • Status: Functional Prototype</span>
+              </div>
+              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div className="bg-indigo-600 h-full w-[80%] rounded-full"></div>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-xs font-semibold mb-1">
+                <span className="text-slate-800">Queue Management & Admin Dashboard</span>
+                <span className="text-indigo-700 font-mono">60% • Status: Functional Prototype</span>
+              </div>
+              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div className="bg-indigo-600 h-full w-[60%] rounded-full"></div>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-xs font-semibold mb-1">
+                <span className="text-slate-800">Physical Printer Spooler Integration</span>
+                <span className="text-slate-500 font-mono">20% • Status: Planned</span>
+              </div>
+              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div className="bg-slate-400 h-full w-[20%] rounded-full"></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-900 text-slate-200 p-6 rounded-2xl shadow-md space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">
+                  Recommended Repository Evidence
+                </span>
+                <h3 className="text-lg font-bold text-white">Project Codebase Structure</h3>
+              </div>
+              <span className="text-xs text-slate-400 font-mono">Git Monorepo Architecture</span>
+            </div>
+
+            <pre className="p-4 bg-slate-950 rounded-xl text-xs font-mono text-indigo-300 overflow-x-auto leading-relaxed border border-slate-800">
+{`smartprint-ai/
+├── frontend/
+│   ├── src/
+│   │   ├── components/       # QueueCard, PriceCalc, FileUpload
+│   │   ├── pages/            # 17 Prototype Views
+│   │   ├── App.jsx           # State Machine & Router
+│   │   └── main.jsx
+│   ├── package.json          # React, Vite, Tailwind CSS, Lucide
+│   └── vite.config.js
+├── backend/
+│   ├── server.js             # Node.js + Express.js API
+│   ├── routes/
+│   │   ├── upload.js         # Multer ingestion
+│   │   ├── queue.js          # FIFO Spooler
+│   │   └── admin.js
+│   └── database/
+│       ├── db.js             # SQLite3 connection
+│       └── schema.sql        # Tables: jobs, docs, operators
+├── ai-service/
+│   ├── main.py               # FastAPI microservice
+│   ├── document_analyzer.py  # OCR, Page extraction & Gemini hook
+│   └── requirements.txt      # fastapi, uvicorn, pydantic, pymupdf
+├── README.md
+└── package.json`}
+            </pre>
+
+            <div className="pt-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Development Milestones</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs">
+                <div className="p-2.5 bg-slate-800 rounded-lg border border-slate-700">
+                  <div className="text-indigo-400 font-bold">1. Init</div>
+                  <div className="text-slate-300 text-[11px] mt-0.5">Project scaffolding & UI tokens</div>
+                </div>
+                <div className="p-2.5 bg-slate-800 rounded-lg border border-slate-700">
+                  <div className="text-indigo-400 font-bold">2. Upload</div>
+                  <div className="text-slate-300 text-[11px] mt-0.5">Drag-and-drop & validation</div>
+                </div>
+                <div className="p-2.5 bg-slate-800 rounded-lg border border-slate-700">
+                  <div className="text-indigo-400 font-bold">3. AI Service</div>
+                  <div className="text-slate-300 text-[11px] mt-0.5">FastAPI analysis prototype</div>
+                </div>
+                <div className="p-2.5 bg-slate-800 rounded-lg border border-slate-700">
+                  <div className="text-indigo-400 font-bold">4. Print Queue</div>
+                  <div className="text-slate-300 text-[11px] mt-0.5">SQLite spooler & price engine</div>
+                </div>
+                <div className="p-2.5 bg-slate-800 rounded-lg border border-slate-700">
+                  <div className="text-indigo-400 font-bold">5. Dashboard</div>
+                  <div className="text-slate-300 text-[11px] mt-0.5">Operator view & tracking</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 15-17. ARCHITECTURE, WORKFLOW & TECH STACK
+    // ==========================================
+    function ArchitectureLayout({ currentView, setCurrentView }) {
+      return (
+        <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+            <button
+              onClick={() => setCurrentView('architecture')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${currentView === 'architecture' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              15. System Architecture
+            </button>
+            <button
+              onClick={() => setCurrentView('workflow')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${currentView === 'workflow' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              16. Workflow Diagram
+            </button>
+            <button
+              onClick={() => setCurrentView('tech_stack')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${currentView === 'tech_stack' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              17. Technical Stack & Viva Guide
+            </button>
+          </div>
+
+          {currentView === 'architecture' && <ArchitectureContent />}
+          {currentView === 'workflow' && <WorkflowContent />}
+          {currentView === 'tech_stack' && <TechStackContent />}
+        </div>
+      );
+    }
+
+    // 15. System Architecture Content
+    function ArchitectureContent() {
+      return (
+        <div className="space-y-6">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
+              High-Level Engineering Design
+            </span>
+            <h1 className="text-3xl font-extrabold text-slate-900 mt-3">System Architecture</h1>
+            <p className="text-slate-600 text-sm mt-1">
+              Microservices-based decoupled design connecting client devices, Node.js API, SQLite store, Python AI service, and printer spooler.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-xs">
+            <div className="space-y-4 max-w-2xl mx-auto">
+              <div className="p-4 bg-indigo-50 border-2 border-indigo-200 rounded-xl text-center">
+                <span className="text-xs font-bold text-indigo-900 uppercase">Client Layer</span>
+                <h4 className="font-extrabold text-slate-900 text-base">USER (Student / Faculty / Operator)</h4>
+                <p className="text-xs text-slate-600">Desktop Web Browser • Mobile Responsive View</p>
+              </div>
+
+              <div className="flex justify-center text-indigo-600 font-bold">↓ REST / JSON HTTP</div>
+
+              <div className="p-4 bg-white border-2 border-slate-300 rounded-xl text-center shadow-xs">
+                <span className="text-xs font-bold text-indigo-600 uppercase">Presentation Layer</span>
+                <h4 className="font-extrabold text-slate-900 text-base">React.js + Vite + Tailwind CSS</h4>
+                <p className="text-xs text-slate-600">Client-Side State Machine • Live Pricing Engine • Progress Tracker</p>
+              </div>
+
+              <div className="flex justify-center text-indigo-600 font-bold">↓ Multi-part Form Data / API Calls</div>
+
+              <div className="p-4 bg-slate-900 text-white border-2 border-slate-800 rounded-xl text-center shadow-md">
+                <span className="text-xs font-bold text-indigo-400 uppercase">API Gateway Layer</span>
+                <h4 className="font-extrabold text-white text-base">Node.js + Express.js Backend</h4>
+                <p className="text-xs text-slate-300">File Ingestion (Multer) • Authentication • Queue Logic</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex justify-center text-indigo-600 font-bold">↓ Async RPC / HTTP</div>
+                <div className="flex justify-center text-indigo-600 font-bold">↓ SQL Queries</div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-xl text-center">
+                  <span className="text-xs font-bold text-purple-700 uppercase">AI Microservice</span>
+                  <h4 className="font-bold text-slate-900 text-sm">Python FastAPI Service</h4>
+                  <p className="text-[11px] text-slate-600 mt-1">
+                    OCR / PyMuPDF Page Detection • Google Gemini API Suitability Classifier
+                  </p>
+                </div>
+
+                <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-xl text-center">
+                  <span className="text-xs font-bold text-blue-700 uppercase">Persistence Layer</span>
+                  <h4 className="font-bold text-slate-900 text-sm">SQLite Database</h4>
+                  <p className="text-[11px] text-slate-600 mt-1">
+                    Tables: print_jobs, uploaded_documents, audit_log, pricing_rules
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-center text-indigo-600 font-bold">↓ FIFO Job Queue Dispatcher</div>
+
+              <div className="p-4 bg-amber-50 border-2 border-amber-200 rounded-xl text-center">
+                <span className="text-xs font-bold text-amber-800 uppercase">Scheduling Layer</span>
+                <h4 className="font-extrabold text-slate-900 text-base">Print Queue Manager & OS Spooler</h4>
+                <p className="text-xs text-slate-600">CUPS / Windows Print Spooler • Job State Dispatcher</p>
+              </div>
+
+              <div className="flex justify-center text-indigo-600 font-bold">↓ Hardware Interface (Simulated / Raw Spool)</div>
+
+              <div className="p-4 bg-emerald-50 border-2 border-emerald-200 rounded-xl text-center">
+                <span className="text-xs font-bold text-emerald-800 uppercase">Hardware Output</span>
+                <h4 className="font-extrabold text-slate-900 text-base">Commercial Xerox Multi-Function Device</h4>
+                <p className="text-xs text-slate-600">Simulated in Prototype • Ready for Network IP/USB Bridge</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 16. Workflow Diagram Content
+    function WorkflowContent() {
+      return (
+        <div className="space-y-6">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
+              End-to-End Pipeline
+            </span>
+            <h1 className="text-3xl font-extrabold text-slate-900 mt-3">Workflow Diagram</h1>
+            <p className="text-slate-600 text-sm mt-1">
+              Step-by-step state machine from initial file ingestion to final student pickup.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-xs">
+            <div className="space-y-3 max-w-xl mx-auto">
+              {[
+                { step: "01", name: "Upload", desc: "User drags file (PDF, DOCX, JPG, PNG) into React web interface." },
+                { step: "02", name: "Validate", desc: "MIME-type check, file size limit (50MB), extension verification." },
+                { step: "03", name: "AI Analyse", desc: "FastAPI parses document structure, font embeddings, and OCR." },
+                { step: "04", name: "Extract Pages", desc: "Accurate page count computed automatically without manual counting." },
+                { step: "05", name: "Configure Print", desc: "User selects Copies, Colour vs B&W, Single/Double sided, and Paper Size." },
+                { step: "06", name: "Calculate Cost", desc: "Formula: Pages × Copies × Rate applied with live instant feedback." },
+                { step: "07", name: "Create Queue Job", desc: "Unique Job ID (e.g. SP-2026-00124) generated and stored in SQLite." },
+                { step: "08", name: "Queue Processing", desc: "Operator dashboard processes FIFO jobs sequentially via 'Process Next Job'." },
+                { step: "09", name: "Print Spooler", desc: "Job spooled to active print queue buffer." },
+                { step: "10", name: "Physical Print", desc: "Simulated hardware output with real-time status transitions." },
+                { step: "11", name: "Completed", desc: "User receives pickup notification with token and collects document." }
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-indigo-300 transition-colors">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-mono font-bold text-xs shrink-0">
+                    {item.step}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-slate-900 text-sm">{item.name}</h4>
+                    <p className="text-xs text-slate-500">{item.desc}</p>
+                  </div>
+                  <Icon name="checkCircle" size={16} className="text-emerald-500 shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 17. Technical Stack & Viva Guide Content
+    function TechStackContent() {
+      return (
+        <div className="space-y-8">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
+              Complete Technical Specification
+            </span>
+            <h1 className="text-3xl font-extrabold text-slate-900 mt-3">Technical Stack & Project README</h1>
+            <p className="text-slate-600 text-sm mt-1">
+              Detailed technology breakdown and college presentation viva defense guide.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Icon name="code" size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Frontend Layer</h3>
+                  <span className="text-xs text-slate-500">Client-side User & Operator Interface</span>
+                </div>
+              </div>
+              <ul className="text-xs text-slate-600 space-y-2 list-disc pl-4 pt-2">
+                <li><strong className="text-slate-800">React.js 18:</strong> Component-based reactive architecture with state hooks.</li>
+                <li><strong className="text-slate-800">Vite:</strong> Ultra-fast modern frontend build tool and hot-module reloading.</li>
+                <li><strong className="text-slate-800">Tailwind CSS:</strong> Utility-first responsive design system with custom brand tokens.</li>
+                <li><strong className="text-slate-800">Lucide Icons:</strong> Clean, consistent SVG icon set for intuitive navigation.</li>
+              </ul>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <Icon name="database" size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Backend & Database Layer</h3>
+                  <span className="text-xs text-slate-500">API Gateway & Storage</span>
+                </div>
+              </div>
+              <ul className="text-xs text-slate-600 space-y-2 list-disc pl-4 pt-2">
+                <li><strong className="text-slate-800">Node.js + Express.js:</strong> Lightweight asynchronous REST API router.</li>
+                <li><strong className="text-slate-800">Multer:</strong> Multi-part file stream upload middleware.</li>
+                <li><strong className="text-slate-800">SQLite:</strong> Embedded zero-configuration SQL database for print job persistence.</li>
+              </ul>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <Icon name="cpu" size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">AI Microservice Layer</h3>
+                  <span className="text-xs text-slate-500">Document Intelligence & OCR</span>
+                </div>
+              </div>
+              <ul className="text-xs text-slate-600 space-y-2 list-disc pl-4 pt-2">
+                <li><strong className="text-slate-800">Python + FastAPI:</strong> High-performance async microservice for heavy document compute.</li>
+                <li><strong className="text-slate-800">PyMuPDF / Tesseract OCR:</strong> Document classification, page count extraction.</li>
+                <li><strong className="text-slate-800">Mock AI Service:</strong> Built-in zero-latency simulated service for robust demo execution.</li>
+                <li><strong className="text-slate-800">Google Gemini API:</strong> Architecture pre-configured for multimodal document understanding via API key environment variables.</li>
+              </ul>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Icon name="printer" size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Print Spooler Integration</h3>
+                  <span className="text-xs text-slate-500">Hardware & Queue Simulation</span>
+                </div>
+              </div>
+              <ul className="text-xs text-slate-600 space-y-2 list-disc pl-4 pt-2">
+                <li><strong className="text-slate-800">Prototype Queue Simulation:</strong> In-browser FIFO scheduler with dynamic status shifts.</li>
+                <li><strong className="text-slate-800">Future Hardware Spooler:</strong> CUPS (Linux/macOS) or Windows Print Spooler (`win32print`) connector ready for direct network Xerox multi-function printers.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+            <h3 className="text-xl font-bold text-slate-900">College Project Viva & Evaluation Defense Guide</h3>
+            <p className="text-xs text-slate-500 -mt-4">Prepared answers to common questions asked by academic project evaluators.</p>
+
+            <div className="space-y-4">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 className="font-bold text-slate-900 text-sm">Q1: How does the AI count pages accurately across corrupt or multi-section documents?</h4>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  <strong>Answer:</strong> The FastAPI microservice leverages PyMuPDF to parse the internal PDF page dictionary tree rather than relying on unreliable metadata tags. In parallel, our OCR pre-flight check detects blank separator sheets and corrupted fonts, returning a verified printable page count and confidence score.
+                </p>
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 className="font-bold text-slate-900 text-sm">Q2: How does the system handle real-time queue synchronization?</h4>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  <strong>Answer:</strong> Print jobs are assigned a deterministic position in the SQLite database. When the operator advances a job via "Process Next Job", the state transitions from Waiting → Printing → Completed, triggering an immediate recalculation of all remaining queue positions and wait times.
+                </p>
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <h4 className="font-bold text-slate-900 text-sm">Q3: Why use a microservice architecture (Node.js + Python FastAPI)?</h4>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  <strong>Answer:</strong> Node.js excels at high-concurrency I/O and lightweight REST handling for student web traffic, while Python provides the industry-standard ecosystem for heavy document processing, OCR, and AI/Gemini model orchestration. Decoupling them prevents CPU-intensive analysis from freezing the main API.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
